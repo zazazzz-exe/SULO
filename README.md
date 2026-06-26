@@ -1,144 +1,161 @@
-# SULO 🔦
+<div align="center">
 
-**Understand any legal document — in plain language, in your language.**
+# 🔦 SULO
 
-SULO is an AI legal-literacy app for Filipinos. A user photographs, uploads, or
-speaks a legal document (an employment contract, a notice, a loan) and SULO
-explains it in plain language, flags risky clauses, answers questions through
-**the Coach** (chat), and points to free legal help.
+**Understandable for every Filipino.**
 
-> **Framing, everywhere: literacy, not advice.** SULO teaches people to read
-> their own documents. It is **not** a lawyer and does not give legal advice.
-> When a question needs real legal judgment, it routes to **PAO** and **DOLE**.
+*Sulo* — Filipino for **torch**. An AI legal-literacy platform that brings ordinary Filipinos out of the dark on the documents that decide their rights — without ever pretending to be a lawyer.
 
-MVP domain: **employment & labor**. Built by **Team Siryus** for **ACM
-TechSprint — Asteria: Illuminate the Future**.
+![Status](https://img.shields.io/badge/status-ONGOING-E07B00?style=flat-square)
+![Hackathon](https://img.shields.io/badge/ACM%20TechSprint-Asteria-17150F?style=flat-square)
+![Positioning](https://img.shields.io/badge/literacy-not%20advice-B25E00?style=flat-square)
 
----
+</div>
 
-## Phase 1 status — UI only ✅
+> *A right you cannot read, in a language you weren't taught, explained by a lawyer you can't afford — is not really a right at all.*
 
-This repo is **Phase 1: the complete interface on mock data behind a stubbed
-service layer.** There is **no real AI, OCR, ASR/TTS, backend, or network call.**
-Phase 2 fills in the service bodies without changing the UI. See
-[**Phase-2 seams**](#phase-2-seams) below.
-
-Runs from **one codebase** as a **web app** and on **iOS/Android via Expo**.
-
-### Run it
-
-```bash
-npm install
-npx expo start --web      # web
-npx expo start            # then press i / a, or scan with Expo Go (native)
-```
-
-Typecheck / bundle checks:
-
-```bash
-npx tsc --noEmit
-npx expo export --platform web      # produces dist/
-npx expo export --platform android  # verifies the native babel/worklets pipeline
-```
+SULO turns dense legal documents into instant, conversational clarity. Point your phone at a contract, a notice, or a loan agreement — by upload, photo, or voice — and SULO explains, in plain language and in your own tongue, what the document is, what it obligates you to do, what deadlines it carries, and which clauses deserve a second look. **It gives legal understanding, not legal advice** — and it routes you to real help when you need it, so that safety lives in comprehension, not in dense legal jargon.
 
 ---
 
-## Tech & conventions
+## 📑 Table of Contents
 
-- **Expo + React Native + react-native-web**, **Expo Router** (file-based, web + native).
-- **React Native primitives only** — no raw HTML/DOM, no web-only CSS.
-- **Styling:** `StyleSheet` + a typed token module. Every color/space/type/radius/
-  shadow value lives in [`src/theme/tokens.ts`](src/theme/tokens.ts). No NativeWind.
-- **Animation:** **Moti + Reanimated 3/4 only.** All non-essential motion gates on
-  `useReducedMotionPref()`.
-- **Responsive** via `useWindowDimensions` (`src/hooks/useResponsive.ts`) — one
-  code path for desktop / tablet / mobile.
-- **Persistence** via an AsyncStorage abstraction (`src/storage/storage.ts`).
-  Never call `localStorage` directly.
-- **TypeScript throughout.** All logic lives behind the service layer — components
-  import from `src/services`, never `fetch` directly.
-
-> **SDK note:** scaffolded on Expo SDK 56 (React Native 0.85, Reanimated 4). With
-> Reanimated 4 the worklets Babel plugin (`react-native-worklets/plugin`) is added
-> automatically by `babel-preset-expo`, so there is no custom `babel.config.js` —
-> the spec's manual "add reanimated/plugin last" step does not apply on this SDK.
+- [Project Overview](#-project-overview)
+- [The Problem](#-the-problem)
+- [Features](#-features)
+- [How It Works](#-how-it-works)
+- [Technologies Used](#-technologies-used)
+- [Setup Instructions](#-setup-instructions)
+- [Project Status & Roadmap](#-project-status--roadmap)
+- [Privacy & Data Handling](#-privacy--data-handling)
+- [Team Members & Roles](#-team-members--roles)
+- [Concept Glossary](#-concept-glossary)
+- [Submission Checklist](#-submission-checklist)
 
 ---
 
-## Project structure
+## 🧭 Project Overview
 
-```
-app/                       # Expo Router routes (web + native)
-  _layout.tsx              # fonts + splash hold, SafeAreaProvider, SettingsProvider, Stack
-  index.tsx                # Landing (torch glow, scroll reveals)
-  coach.tsx                # The Legal Coach (chat) — the heart
-  glossary.tsx             # FSL glossary
-  settings.tsx             # Settings (modal)
+| | |
+| :--- | :--- |
+| **Project** | SULO — AI Legal-Literacy & Document-Understanding Platform |
+| **Team** | Siryus |
+| **Selected Project Case** | Project Case 2: AI-Powered Study Companion for Filipino Learners |
+| **Scope / Focus** | Employment & Labor *(Minimum Viable Product)* |
+| **Tagline** | Understandable for every Filipino |
+| **Positioning** | Literacy, not advice |
+| **Theme** | *Asteria: Illuminate the Future* — SULO is the torch |
 
-src/
-  theme/                   # tokens.ts (design system) + index.ts (useTheme: a11y palette/scale)
-  hooks/                   # useResponsive, useReducedMotion
-  storage/                 # AsyncStorage abstraction
-  services/                # THE SEAM LAYER (typed stubs, mock returns)
-    types.ts               # ChatMessage, MessageCard (6 kinds), DocumentAnalysis, Clause,
-                           #   RiskFlag, Citation, GlossaryTerm, Settings, …
-    config.ts              # reads EXPO_PUBLIC_* env → typed config + isLiveBackend flag
-    coachService.ts        # sendMessage(history, text, opts) → mock MessageCards
-    documentService.ts     # analyzeDocument(file|image) → mock contract analysis
-    voiceService.ts        # transcribe(audio) / speak(text) → no-op
-    settingsService.tsx    # Settings context + persistence
-  data/                    # mock content (so the UI looks real on first load)
-    sampleContract.ts      # ~6-clause BPO employment contract
-    flaggedClauses.ts      # 3 risk flags + the assembled DocumentAnalysis
-    sampleConversation.ts  # scripted Coach thread exercising all card types
-    glossaryTerms.ts       # Probation / Waiver / Overtime / Penalty
-    citations.ts           # mock grounded citations
-  components/
-    brand/                 # Wordmark, TorchGlow
-    motion/                # Reveal (scroll-reveal), StepConnector
-    nav/                   # AppHeader, Drawer, AppShell
-    ui/                    # Text, Surface, Button, Badge, Chip, Container (token-driven)
-    landing/               # Hero, HowItWorks, section parts
-    coach/                 # MessageCard (6 card renderers), Composer, ClausePanel,
-                           #   CitedBasis, ReadAloudButton, TypingIndicator
-```
+SULO is an AI-powered platform that helps Filipinos understand complex legal documents in plain language and in their preferred language (English, Filipino/Taglish, Cebuano). It does **not** provide legal advice — it builds comprehension so people can ask better questions and make informed decisions, and it connects them to legitimate help (the **Public Attorney's Office** and **DOLE**) when an issue needs a professional.
 
-### The 6 assistant card types (`src/services/types.ts` → `MessageCard`)
-
-1. `plain-answer` — plain-language answer + **CITED BASIS** chip + **Read aloud**
-2. `doc-analysis` — title + key-facts strip + "I found N things worth a closer look"
-3. `risk-flag` — HIGH/MED badge + plain explanation + cited basis → opens the clause
-   in a **right panel (web)** / **bottom sheet (mobile)**
-4. `what-if` — scenario → exact clause + consequence
-5. `escalation` — low-confidence → **PAO** / **DOLE hotline** buttons
-6. `typing` — flickering amber flame (shown live while a reply is in flight)
+For the MVP, SULO focuses on **employment and labor documents** — a high-impact, relatable domain grounded in a focused, verifiable knowledge base (the Philippine Labor Code and DOLE rules).
 
 ---
 
-## Phase-2 seams
+## 🛑 The Problem
 
-Everything below is mocked behind a stable interface. To go live, set the
-matching `EXPO_PUBLIC_*` var (see [`.env.example`](.env.example)) and replace the
-marked body — **no UI changes required**. Each file has a `PHASE-2 SEAM` comment.
+**1. The language barrier in law.** Everyday documents that govern Filipinos' lives — employment contracts, rental agreements, loan forms, government notices, court summons — are written in technical English, dense legal jargon, or overly complex Filipino. Ordinary citizens are systematically locked out of understanding their own rights and obligations.
 
-| Seam | File | Replace with | Env var |
-| --- | --- | --- | --- |
-| Coach answers (LLM + RAG) | `src/services/coachService.ts` → `sendMessage` / `composeReply` | LLM call grounded by vector-store retrieval; map result → `MessageCard` | `EXPO_PUBLIC_LLM_API_URL`, `EXPO_PUBLIC_VECTOR_STORE_URL` |
-| Document understanding | `src/services/documentService.ts` → `analyzeDocument` | OCR → clause parsing → risk classification → citation retrieval, returning the same `DocumentAnalysis` shape | `EXPO_PUBLIC_OCR_API_URL` (+ LLM/vector) |
-| Voice in | `src/services/voiceService.ts` → `transcribe` | Real ASR (web: MediaRecorder upload; native: expo-av) | `EXPO_PUBLIC_ASR_API_URL` |
-| Voice out | `src/services/voiceService.ts` → `speak` | Real TTS (web: Audio/Web Speech; native: expo-speech) | `EXPO_PUBLIC_TTS_API_URL` |
-| Persistence backend | `src/storage/storage.ts` | Swap AsyncStorage for SecureStore / SQLite / server sync | — |
-| FSL glossary clips | `src/components/glossary` placeholder (in `app/glossary.tsx`) + `GlossaryTerm.videoPlaceholder` | Real FSL video sources | — |
-| Citation deep-links | `Citation.url` (`src/services/types.ts`) | Link out to the cited source | — |
+**2. Real-world consequences.** Signing documents blindly leads directly to exploitation and financial harm:
 
-`config.isLiveBackend` flips to `true` automatically once any `EXPO_PUBLIC_*` URL
-is set, and each service already branches on it.
+- **Labor exploitation** — unpaid overtime, illegal deductions, missing 13th-month pay, and unremitted SSS/PhilHealth contributions. DOLE records cite a lack of awareness as a primary reason these abuses persist.
+- **Predatory lending** — over **47.5 million** Filipinos used loan apps in 2023, and countless borrowers locked themselves into impossible repayment terms and hidden fees they did not comprehend.
+- **Navigational fear** — many victims never file complaints because the formal legal system feels too complicated and intimidating to navigate.
+
+The law exists. The rights exist. **The gap is in comprehension.**
 
 ---
 
-## Accessibility (built in now)
+## ✨ Features
 
-Touch targets ≥ 48dp · high-contrast mode · adjustable text size · reduced-motion
-respected · icons always paired with text labels · `accessibilityLabel` /
-`accessibilityRole` throughout · voice + captions controls placed (wiring is
-Phase 2). All preferences live in **Settings** and persist on device.
+- **📸 Multimodal input** — capture a document by camera photo (OCR), file upload, or voice (ASR), including natural Taglish code-switching.
+- **🗣️ Plain-language & native translation** — strips away jargon and explains the document in the user's chosen language, with side-by-side *original ↔ plain-language* views and Text-to-Speech playback.
+- **🔍 Entity & risk recognition** — automatically extracts party names, monetary values, hidden fees, interest rates, and critical deadlines.
+- **🚩 Red-flag detection** — isolates unusual or potentially illegal clauses (predatory terms, non-compete overreach) so users know exactly what to review.
+- **🧠 Hallucination-resistant answers** — every explanation is grounded in a curated, date-stamped knowledge base of real legal provisions via retrieval (RAG), not the model's memory.
+- **🤝 Guardrails & escalation** — strictly literacy, not advice. When an escalatable issue is detected, SULO routes the user to the Public Attorney's Office (free legal aid) or the DOLE hotline.
+- **♿ Built for everyone** — voice in/out and plain-language design make SULO usable across languages and literacy levels.
+
+---
+
+## 🔄 How It Works
+
+1. **Capture & extract (OCR / ASR)** — read a photographed or uploaded document, or transcribe spoken Filipino/Taglish.
+2. **Classify & route** — detect the language profile and document type to load the right legal compliance framework.
+3. **Ground semantically (RAG + vector store)** — query a curated index of true legal provisions (Labor Code, current amendments) to prevent AI hallucinations.
+4. **Comprehend locally** — a compressed, quantized LLM highlights deadlines, monetary balances, and suspicious clauses.
+5. **Deliver clarity (TTS)** — the user reads or listens to an interactive, side-by-side translation, understanding their rights without crossing into legal-advice territory.
+
+---
+
+## 🛠️ Technologies Used
+
+| Layer | Stack |
+| :--- | :--- |
+| **Frontend** | React + Vite *(PWA, mobile-responsive)* |
+| **AI / Inference** | Quantized LLM *(compressed, on-device-friendly inference)* |
+| **Document capture** | OCR *(image → text)* · ASR *(speech → text)* |
+| **Output** | TTS *(text → speech)* |
+| **Knowledge & grounding** | RAG pipeline + Vector Store semantic index over a date-stamped legal corpus |
+| **Language / document routing** | Automatic language + document-type detection |
+| **Deploy / CI** | Vercel · GitHub Actions (`npm ci` → `npm run build`) |
+
+> 📚 **Legal anchors** in the knowledge base include the **Philippine Labor Code** (Presidential Decree No. 442) and the **Filipino Sign Language Act** (RA 11106).
+
+---
+
+## 👥 Team Members & Roles
+
+**Team Siryus**
+
+| Member | Role |
+| :--- | :--- |
+| Zarrah Exekiel Valles | Team Representative & Main Developer |
+| Vincent Adolf Sablay Adversary | Design |
+| Vehniah P. Samson | AI Integration |
+| Marc Justin Lee G. Granada | Research & Documentation |
+
+
+
+### 📜 Team Rules & Ways of Working
+
+- **Branching:** work on feature branches; open a PR into `main`.
+- **CI gate:** every push and PR runs `npm ci` → `npm run build`; keep `main` green.
+- **Commits:** clear, present-tense messages (e.g., `add risk-flag card`).
+- **Reviews:** at least one teammate reviews each PR before merge.
+- **Communication:** raise blockers early; keep key decisions documented in the repo.
+
+---
+
+## 📖 Concept Glossary
+
+| Term | Meaning |
+| :--- | :--- |
+| **SULO** | Filipino for *torch* — bringing clarity to hidden, dark legal clauses. |
+| **Scan / Upload (OCR)** | Turning an image of a document into machine-readable text. |
+| **Voice Query (ASR)** | Asking about obligations by speaking, including Taglish code-switching. |
+| **Plain Language (TTS)** | The spoken/written overview — *"Ano ang ibig sabihin nito sa madaling salita?"* |
+| **Red Flag** | A clause heavily skewed against the user or potentially illegal under DOLE / Philippine regulations. |
+| **RAG** | Retrieval-Augmented Generation — grounding answers in real legal sources to prevent hallucination. |
+
+---
+
+## ✅ Submission Checklist
+
+- [x] Repository visibility set to **Public**
+- [x] This `README.md` committed to the repository root
+- [ ] Live demo link added
+- [ ] Walkthrough video link added
+- [ ] `frontend/.env.example` present and documented
+- [ ] CI workflow passing on `main`
+
+---
+
+<div align="center">
+
+**Built for the ACM TechSprint hackathon · Theme: *Asteria — Illuminate the Future***
+
+Made with care by **Team Siryus** 🔦
+
+</div>
+
