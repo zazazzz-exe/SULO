@@ -45,6 +45,8 @@ SULO turns dense legal documents into instant, conversational clarity. Point you
 | **Tagline** | Understandable for every Filipino |
 | **Positioning** | Literacy, not advice |
 | **Theme** | *Asteria: Illuminate the Future* — SULO is the torch |
+| **MVP LINK** | https://sulo-siryus.vercel.app/ |
+| **DEMO LINK** | https://drive.google.com/drive/folders/18zGLw1HsbfqnY9QtQAvv3Y-zRoMceVjc?usp=drive_link |
 
 SULO is an AI-powered platform that helps Filipinos understand complex legal documents in plain language and in their preferred language (English, Filipino/Taglish, Cebuano). It does **not** provide legal advice — it builds comprehension so people can ask better questions and make informed decisions, and it connects them to legitimate help (the **Public Attorney's Office** and **DOLE**) when an issue needs a professional.
 
@@ -144,10 +146,9 @@ The law exists. The rights exist. **The gap is in comprehension.**
 
 - [x] Repository visibility set to **Public**
 - [x] This `README.md` committed to the repository root
-- [ ] Live demo link added
-- [ ] Walkthrough video link added
-- [ ] `frontend/.env.example` present and documented
-- [ ] CI workflow passing on `main`
+- [x] Live demo link added
+- [x] Walkthrough video link added
+
 
 ---
 
