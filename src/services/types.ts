@@ -25,6 +25,10 @@ export type Settings = {
   reduceMotion: boolean;
   /** Web-only: replace the pointer with an animated flame torch cursor. */
   torchCursor: boolean;
+  /** Whether the user has seen the home-screen tour (auto-start gate). */
+  tourSeen: boolean;
+  /** Mic uses a scripted demo question (reliable for demos) instead of live ASR. */
+  voiceDemoMode: boolean;
 };
 
 /* ------------------------------ Citations ------------------------------ */

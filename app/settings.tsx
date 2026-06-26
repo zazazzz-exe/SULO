@@ -7,11 +7,8 @@ import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { Surface } from '@/components/ui/Surface';
 import { Text } from '@/components/ui/Text';
-import {
-  languageLabel,
-  readingLevelLabel,
-  useSettings,
-} from '@/services/settingsService';
+import { useT } from '@/i18n';
+import { useSettings } from '@/services/settingsService';
 import { useTheme } from '@/theme';
 import { layout, radii, space } from '@/theme/tokens';
 import type { Language, ReadingLevel, TextSize } from '@/services/types';
@@ -207,6 +204,7 @@ export default function Settings() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { settings, update, reset } = useSettings();
+  const { t } = useT();
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.paper, paddingTop: insets.top }}>
@@ -222,10 +220,10 @@ export default function Settings() {
           borderBottomColor: theme.colors.hairline,
         }}
       >
-        <Text variant="h2">Settings</Text>
+        <Text variant="h2">{t('settings.title')}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close settings"
+          accessibilityLabel={t('settings.close')}
           onPress={() => router.back()}
           hitSlop={10}
           style={{
@@ -243,37 +241,37 @@ export default function Settings() {
         <Container maxWidth={620}>
           <View style={{ gap: space.xl }}>
             <Surface pad="lg" radius="lg" style={{ gap: space.xl }}>
-              <Row title="Language" hint="Used for explanations and translations.">
+              <Row title={t('settings.language')} hint={t('settings.language.hint')}>
                 <Segmented
                   options={LANGUAGES}
                   value={settings.language}
                   onChange={(v) => update({ language: v })}
-                  labelFor={(v) => languageLabel[v]}
+                  labelFor={(v) => t(`lang.${v}`)}
                 />
               </Row>
 
               <Row
-                title="Default reading level"
-                hint="How simply SULO explains things by default."
+                title={t('settings.readingLevel')}
+                hint={t('settings.readingLevel.hint')}
               >
                 <RadioList
                   options={LEVELS}
                   value={settings.readingLevel}
                   onChange={(v) => update({ readingLevel: v })}
-                  labelFor={(v) => readingLevelLabel[v]}
+                  labelFor={(v) => t(`read.${v}`)}
                 />
               </Row>
             </Surface>
 
             <Surface pad="lg" radius="lg" style={{ gap: space.xl }}>
               <ToggleRow
-                title="Voice"
-                hint="Read answers aloud and allow voice questions."
+                title={t('settings.voice')}
+                hint={t('settings.voice.hint')}
                 value={settings.voiceEnabled}
                 onValueChange={(v) => update({ voiceEnabled: v })}
               />
               {settings.voiceEnabled ? (
-                <Row title="Voice speed">
+                <Row title={t('settings.voiceSpeed')}>
                   <Segmented
                     options={SPEEDS.map(String)}
                     value={String(settings.voiceSpeed)}
@@ -282,43 +280,49 @@ export default function Settings() {
                   />
                 </Row>
               ) : null}
+              <ToggleRow
+                title={t('settings.voiceDemo')}
+                hint={t('settings.voiceDemo.hint')}
+                value={settings.voiceDemoMode}
+                onValueChange={(v) => update({ voiceDemoMode: v })}
+              />
             </Surface>
 
             <Surface pad="lg" radius="lg" style={{ gap: space.xl }}>
-              <Row title="Text size" hint="Make everything larger for easier reading.">
+              <Row title={t('settings.textSize')} hint={t('settings.textSize.hint')}>
                 <Segmented
                   options={TEXT_SIZES}
                   value={settings.textSize}
                   onChange={(v) => update({ textSize: v })}
-                  labelFor={(v) => v.charAt(0) + v.slice(1).toLowerCase()}
+                  labelFor={(v) => t(`size.${v}`)}
                 />
               </Row>
               <ToggleRow
-                title="High-contrast mode"
-                hint="Stronger contrast for text and borders."
+                title={t('settings.contrast')}
+                hint={t('settings.contrast.hint')}
                 value={settings.highContrast}
                 onValueChange={(v) => update({ highContrast: v })}
               />
               <ToggleRow
-                title="Reduce motion"
-                hint="Minimize animations like the torch glow and reveals."
+                title={t('settings.reduceMotion')}
+                hint={t('settings.reduceMotion.hint')}
                 value={settings.reduceMotion}
                 onValueChange={(v) => update({ reduceMotion: v })}
               />
               {Platform.OS === 'web' ? (
                 <ToggleRow
-                  title="Torch cursor"
-                  hint="Turn your pointer into a flickering flame (desktop web)."
+                  title={t('settings.torchCursor')}
+                  hint={t('settings.torchCursor.hint')}
                   value={settings.torchCursor}
                   onValueChange={(v) => update({ torchCursor: v })}
                 />
               ) : null}
             </Surface>
 
-            <Button label="Reset to defaults" variant="secondary" onPress={reset} />
+            <Button label={t('settings.reset')} variant="secondary" onPress={reset} />
 
             <Text variant="small" color="muted" center>
-              Your preferences are saved on this device.
+              {t('settings.saved')}
             </Text>
           </View>
         </Container>

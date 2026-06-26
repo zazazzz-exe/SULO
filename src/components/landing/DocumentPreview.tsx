@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { motion, radii, space, webShadow } from '@/theme/tokens';
 import type { RiskLevel } from '@/services/types';
@@ -114,6 +115,7 @@ function Clause({
 export function DocumentPreview({ width = 340 }: { width?: number }) {
   const theme = useTheme();
   const reduced = useReducedMotionPref();
+  const { t } = useT();
 
   return (
     <MotiView
@@ -136,7 +138,7 @@ export function DocumentPreview({ width = 340 }: { width?: number }) {
       {/* Header */}
       <View style={{ gap: space.xs, alignItems: 'center', marginBottom: space.xs }}>
         <Text variant="label" color="muted">
-          Employment Contract
+          {t('doc.title')}
         </Text>
         <View style={{ height: 9, width: '70%', borderRadius: 4, backgroundColor: theme.colors.ink }} />
         <View style={{ height: 6, width: '45%', borderRadius: 4, backgroundColor: theme.colors.hairline }} />
@@ -144,11 +146,11 @@ export function DocumentPreview({ width = 340 }: { width?: number }) {
 
       <View style={{ height: 1, backgroundColor: theme.colors.hairline }} />
 
-      <Clause heading="1 · Compensation" lines={['90%', '76%', '60%']} />
-      <Clause heading="2 · Probationary Period" lines={['88%', '64%']} highlight="risk" tag="HIGH" />
-      <Clause heading="3 · Hours & Overtime" lines={['92%', '80%', '52%']} highlight="risk" tag="HIGH" />
-      <Clause heading="4 · Confidentiality" lines={['84%', '70%']} />
-      <Clause heading="5 · Non-Competition" lines={['86%', '58%']} highlight="med" tag="MED" />
+      <Clause heading={t('doc.c1')} lines={['90%', '76%', '60%']} />
+      <Clause heading={t('doc.c2')} lines={['88%', '64%']} highlight="risk" tag="HIGH" />
+      <Clause heading={t('doc.c3')} lines={['92%', '80%', '52%']} highlight="risk" tag="HIGH" />
+      <Clause heading={t('doc.c4')} lines={['84%', '70%']} />
+      <Clause heading={t('doc.c5')} lines={['86%', '58%']} highlight="med" tag="MED" />
     </MotiView>
   );
 }

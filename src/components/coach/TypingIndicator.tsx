@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { FlameMascot } from '@/components/brand/FlameMascot';
 import { Text } from '@/components/ui/Text';
+import { useT } from '@/i18n';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
 import { space } from '@/theme/tokens';
 
@@ -12,6 +13,7 @@ import { space } from '@/theme/tokens';
  */
 export function TypingIndicator() {
   const reduced = useReducedMotionPref();
+  const { t } = useT();
 
   return (
     <View
@@ -31,7 +33,7 @@ export function TypingIndicator() {
         <FlameMascot size={24} face idle />
       </MotiView>
       <Text variant="small" color="muted">
-        SULO is thinking…
+        {t('card.thinking')}
       </Text>
     </View>
   );

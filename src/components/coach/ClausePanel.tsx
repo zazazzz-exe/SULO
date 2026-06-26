@@ -7,6 +7,7 @@ import { Badge, RiskBadge } from '@/components/ui/Badge';
 import { Text } from '@/components/ui/Text';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { layout, motion, radii, space, webShadow } from '@/theme/tokens';
 import type { Clause, RiskFlag } from '@/services/types';
@@ -32,6 +33,7 @@ export function ClausePanel({
   const reduced = useReducedMotionPref();
   const { isWide } = useResponsive();
   const insets = useSafeAreaInsets();
+  const { t } = useT();
   const open = state != null;
 
   const Body = state ? (
@@ -46,11 +48,11 @@ export function ClausePanel({
           justifyContent: 'space-between',
         }}
       >
-        <Badge label="Clause detail" tone="info" />
+        <Badge label={t('clause.detail')} tone="info" />
         <Pressable
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Close clause detail"
+          accessibilityLabel={t('clause.close')}
           hitSlop={10}
           style={{
             width: layout.minTouchTarget,
@@ -77,7 +79,7 @@ export function ClausePanel({
       {/* Original text */}
       <View style={{ gap: space.xs }}>
         <Text variant="label" color="muted">
-          Original
+          {t('clause.original')}
         </Text>
         <View
           style={{
@@ -97,7 +99,7 @@ export function ClausePanel({
       {/* Plain rewrite */}
       <View style={{ gap: space.xs }}>
         <Text variant="label" color="flameDeep">
-          In plain language
+          {t('clause.plain')}
         </Text>
         <Text variant="bodyLg">{state.clause.plainRewrite}</Text>
       </View>
@@ -106,7 +108,7 @@ export function ClausePanel({
       {state.flag ? (
         <View style={{ gap: space.sm }}>
           <Text variant="label" color="muted">
-            Why it’s flagged
+            {t('clause.why')}
           </Text>
           <Text variant="body">{state.flag.explanation}</Text>
           <CitedBasis citation={state.flag.citedBasis} />
@@ -114,7 +116,7 @@ export function ClausePanel({
       ) : null}
 
       <Text variant="small" color="muted">
-        ⚖︎ This explains the clause for your understanding. It isn’t legal advice.
+        ⚖︎ {t('clause.disclaimer')}
       </Text>
     </ScrollView>
   ) : null;

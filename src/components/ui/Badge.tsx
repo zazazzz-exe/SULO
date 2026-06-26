@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { useTheme } from '@/theme';
+import { useT } from '@/i18n';
 import { radii, space } from '@/theme/tokens';
 import type { RiskLevel } from '@/services/types';
 
@@ -56,7 +57,8 @@ export function riskTone(level: RiskLevel): BadgeTone {
   return level === 'LOW' ? 'ok' : 'risk';
 }
 
-/** "HIGH" / "MED" / "LOW" risk badge. */
+/** Risk badge — localized, e.g. "HIGH RISK" / "MATAAS NA PANGANIB". */
 export function RiskBadge({ level }: { level: RiskLevel }) {
-  return <Badge label={`${level} RISK`} tone={riskTone(level)} />;
+  const { t } = useT();
+  return <Badge label={`${t(`risk.${level}`)} ${t('risk.word')}`} tone={riskTone(level)} />;
 }

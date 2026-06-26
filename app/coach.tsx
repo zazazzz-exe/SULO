@@ -1,4 +1,4 @@
-import { Plus, Paperclip, ScanLine, Mic, MessageSquareText } from 'lucide-react-native';
+import { Paperclip, ScanLine, Mic, MessageSquareText } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
 
@@ -11,35 +11,46 @@ import { Badge } from '@/components/ui/Badge';
 import { Surface } from '@/components/ui/Surface';
 import { Text } from '@/components/ui/Text';
 import type { PState } from '@/components/ui/pressableState';
+import { useT, type StringKey } from '@/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
-import { sampleConversation } from '@/data/sampleConversation';
-import { analyzeDocument } from '@/services/documentService';
+import { pickAndAnalyze, type CaptureSource } from '@/services/documentService';
 import { sendMessage } from '@/services/coachService';
+import { detectPII, piiWarning } from '@/services/pii';
 import { useSettings } from '@/services/settingsService';
+import {
+  liveAsrAvailable,
+  recordOnce,
+  startListening,
+  transcribe,
+  voiceInputAvailable,
+  type ListenController,
+} from '@/services/voiceService';
 import { useTheme } from '@/theme';
 import { layout, space } from '@/theme/tokens';
 import type { ChatMessage } from '@/services/types';
 
-const STARTERS = [
-  'Scan my employment contract',
-  'Pwede ba nila akong pilitin mag-overtime?',
-  'What does “probationary” mean here?',
-];
-
-const QUICK_REPLIES = ['Explain like I’m 15', 'Is this fair?', 'What should I ask HR?'];
+const STARTER_KEYS: StringKey[] = ['coach.starter1', 'coach.starter2', 'coach.starter3'];
+const QUICK_REPLY_KEYS: StringKey[] = ['coach.quick1', 'coach.quick2', 'coach.quick3'];
 
 let idSeq = 1000;
 const newId = () => `local-${++idSeq}`;
 
 export default function Coach() {
   const theme = useTheme();
-  const { isDesktop } = useResponsive();
   const { settings } = useSettings();
+  const { t } = useT();
 
-  const [messages, setMessages] = useState<ChatMessage[]>(sampleConversation);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [panel, setPanel] = useState<ClausePanelState>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [listening, setListening] = useState(false);
+  const listenRef = useRef<ListenController | null>(null);
+
+  const flashNotice = useCallback((msg: string, ms = 4200) => {
+    setNotice(msg);
+    setTimeout(() => setNotice((n) => (n === msg ? null : n)), ms);
+  }, []);
 
   const scrollRef = useRef<ScrollView>(null);
   const scrollToEnd = useCallback(() => {
@@ -52,21 +63,57 @@ export default function Coach() {
 
   const openClause: OpenClause = (payload) => setPanel(payload);
 
-  /** Append a user turn + a typing card, await the mock reply, then swap it in. */
+  /** Append a user turn + a typing card; stream the grounded reply into place. */
   const runReply = useCallback(
     async (history: ChatMessage[], userMsg: ChatMessage) => {
-      const typingId = newId();
-      setMessages([...history, userMsg, { id: typingId, role: 'assistant', card: { kind: 'typing' } }]);
+      // Warn (don't block) if the message contains a personal identifier.
+      const pii = detectPII(userMsg.text ?? '');
+      if (pii.found) flashNotice(piiWarning(pii.kinds));
+
+      const streamId = newId();
+      setMessages([...history, userMsg, { id: streamId, role: 'assistant', card: { kind: 'typing' } }]);
       setBusy(true);
-      const reply = await sendMessage(history, userMsg.text ?? '', {
-        language: settings.language,
-        readingLevel: settings.readingLevel,
-        attachment: userMsg.attachmentName ? { name: userMsg.attachmentName } : undefined,
-      });
-      setMessages((prev) => prev.filter((m) => m.id !== typingId).concat(reply));
-      setBusy(false);
+
+      const onToken = (partial: string) => {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === streamId
+              ? { id: streamId, role: 'assistant', text: partial, card: { kind: 'plain-answer', text: partial, readAloud: true } }
+              : m
+          )
+        );
+      };
+
+      try {
+        const reply = await sendMessage(
+          history,
+          userMsg.text ?? '',
+          { language: settings.language, readingLevel: settings.readingLevel },
+          onToken
+        );
+        setMessages((prev) => prev.filter((m) => m.id !== streamId).concat(reply));
+      } catch {
+        // Never a dead end — fall back to the escalation path.
+        setMessages((prev) =>
+          prev.filter((m) => m.id !== streamId).concat({
+            id: newId(),
+            role: 'assistant',
+            text: t('coach.err.text'),
+            card: {
+              kind: 'escalation',
+              text: t('coach.err.escalate'),
+              resources: [
+                { id: 'r-pao', label: 'PAO', detail: 'Public Attorney’s Office — free legal aid.', action: 'Find a PAO office' },
+                { id: 'r-dole', label: 'DOLE Hotline 1349', detail: 'Labor concerns hotline.', action: 'Call 1349' },
+              ],
+            },
+          })
+        );
+      } finally {
+        setBusy(false);
+      }
     },
-    [settings.language, settings.readingLevel]
+    [settings.language, settings.readingLevel, flashNotice, t]
   );
 
   const handleSend = useCallback(
@@ -81,51 +128,116 @@ export default function Coach() {
     [busy, runReply]
   );
 
-  /** Simulate attaching/scanning a document → document-analysis card. */
+  /** Real capture: pick / photograph a document → OCR → grounded analysis. */
   const handleAttach = useCallback(
-    async (label: string) => {
+    async (source: CaptureSource) => {
       if (busy) return;
+      setBusy(true);
+      let result;
+      try {
+        result = await pickAndAnalyze(source);
+      } catch {
+        result = null;
+      }
+      if (!result) {
+        // User cancelled the picker (or it couldn't open).
+        setBusy(false);
+        return;
+      }
+
+      if (result.pii.found) flashNotice(piiWarning(result.pii.kinds));
+      if (result.warnings.length) flashNotice(result.warnings[0], 6000);
+
       const userMsg: ChatMessage = {
         id: newId(),
         role: 'user',
-        text: 'Please check this document.',
-        attachmentName: label,
+        text: source === 'camera' ? t('coach.attach.scan') : t('coach.attach.upload'),
+        attachmentName: result.sourceName,
       };
-      const typingId = newId();
-      setMessages((prev) => [
-        ...prev,
-        userMsg,
-        { id: typingId, role: 'assistant', card: { kind: 'typing' } },
-      ]);
-      setBusy(true);
-      const analysis = await analyzeDocument({ type: 'mock' });
+      const n = result.analysis.flags.length;
       setMessages((prev) =>
-        prev.filter((m) => m.id !== typingId).concat({
+        prev.concat(userMsg, {
           id: newId(),
           role: 'assistant',
-          text: analysis.summary,
+          text: result.analysis.summary,
           card: {
             kind: 'doc-analysis',
-            analysis,
-            intro: 'I read your document. I found 3 things worth a closer look.',
+            analysis: result.analysis,
+            intro: result.grounded
+              ? t(n === 1 ? 'coach.docIntro.one' : 'coach.docIntro.other', { n })
+              : t('coach.docIntro.sample'),
           },
         })
       );
       setBusy(false);
     },
-    [busy]
+    [busy, flashNotice, t]
   );
 
-  const handleMic = useCallback(() => {
-    // voiceService.transcribe is a Phase-1 no-op; surface a friendly note.
-    setNotice('Voice input is coming in the next version. For now, type your question.');
-    setTimeout(() => setNotice(null), 3200);
-  }, []);
+  /** Voice input. Demo mode: tap to "listen", tap again to send a scripted,
+   *  language-aware question (reliable for demos). Otherwise: live web ASR /
+   *  native record → endpoint. */
+  const handleMic = useCallback(async () => {
+    if (busy) return;
 
-  const startNew = useCallback(() => {
-    setMessages([]);
-    setPanel(null);
-  }, []);
+    // Scripted demo voice — deterministic, language-aware.
+    if (settings.voiceDemoMode) {
+      if (listening) {
+        setListening(false);
+        setNotice(null);
+        handleSend(t('demo.overtime'));
+      } else {
+        setListening(true);
+        flashNotice(t('coach.voice.tapStop'), 15000);
+      }
+      return;
+    }
+
+    // Toggle off if already listening.
+    if (listening) {
+      listenRef.current?.stop();
+      listenRef.current = null;
+      setListening(false);
+      return;
+    }
+
+    if (liveAsrAvailable()) {
+      setListening(true);
+      flashNotice(t('coach.listen.start'), 10000);
+      listenRef.current = startListening({
+        language: settings.language,
+        onPartial: (partial) => setNotice(t('coach.listen.partial', { t: partial })),
+        onFinal: (final) => {
+          setListening(false);
+          setNotice(null);
+          if (final.trim()) handleSend(final.trim());
+        },
+        onError: (msg) => {
+          setListening(false);
+          flashNotice(msg);
+        },
+      });
+      return;
+    }
+
+    if (voiceInputAvailable()) {
+      // Native: record a short clip and transcribe via the ASR endpoint.
+      try {
+        flashNotice(t('coach.record'), 7000);
+        const audio = await recordOnce();
+        if (audio) {
+          const res = await transcribe(audio, settings.language);
+          if (res.text.trim()) handleSend(res.text.trim());
+          else flashNotice(t('coach.voice.nocatch'));
+        }
+      } catch {
+        flashNotice(t('coach.voice.fail'));
+      }
+      return;
+    }
+
+    flashNotice(t('coach.voice.none'));
+  }, [busy, listening, settings.voiceDemoMode, settings.language, flashNotice, handleSend, t]);
 
   const isEmpty = messages.length === 0;
 
@@ -136,45 +248,46 @@ export default function Coach() {
         <View style={{ alignItems: 'center' }}>
           <FlameMascot size={72} face idle />
         </View>
-        <Badge label="The Legal Coach" tone="flame" />
-        <Text variant="h2">Hi — I’m SULO. Bring me your fine print.</Text>
+        <Badge label={t('coach.empty.badge')} tone="flame" />
+        <Text variant="h2">{t('coach.empty.title')}</Text>
         <Text variant="bodyLg" color="muted">
-          Attach or scan a document, or just ask a question. I’ll explain it in
-          plain language, flag what’s risky, and point you to real help. I teach
-          legal literacy — I’m not a substitute for a lawyer.
+          {t('coach.empty.body')}
         </Text>
 
         <View style={{ gap: space.sm }}>
-          {STARTERS.map((s) => (
-            <Pressable
-              key={s}
-              accessibilityRole="button"
-              accessibilityLabel={s}
-              onPress={() => handleSend(s)}
-              style={({ pressed, hovered }: PState) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: space.sm,
-                minHeight: layout.minTouchTarget,
-                paddingHorizontal: space.md,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: theme.colors.hairline,
-                backgroundColor: pressed || hovered ? theme.colors.inkSoft : theme.colors.paper,
-              })}
-            >
-              <MessageSquareText size={18} color={theme.colors.flameDeep} />
-              <Text variant="bodyStrong" style={{ flex: 1 }}>
-                {s}
-              </Text>
-            </Pressable>
-          ))}
+          {STARTER_KEYS.map((k) => {
+            const label = t(k);
+            return (
+              <Pressable
+                key={k}
+                accessibilityRole="button"
+                accessibilityLabel={label}
+                onPress={() => handleSend(label)}
+                style={({ pressed, hovered }: PState) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: space.sm,
+                  minHeight: layout.minTouchTarget,
+                  paddingHorizontal: space.md,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: theme.colors.hairline,
+                  backgroundColor: pressed || hovered ? theme.colors.inkSoft : theme.colors.paper,
+                })}
+              >
+                <MessageSquareText size={18} color={theme.colors.flameDeep} />
+                <Text variant="bodyStrong" style={{ flex: 1 }}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <View style={{ flexDirection: 'row', gap: space.md }}>
-          <EmptyAffordance icon={Paperclip} label="Upload" onPress={() => handleAttach('contract.pdf')} />
-          <EmptyAffordance icon={ScanLine} label="Scan" onPress={() => handleAttach('contract-photo.jpg')} />
-          <EmptyAffordance icon={Mic} label="Speak" onPress={handleMic} />
+          <EmptyAffordance icon={Paperclip} label={t('coach.upload')} onPress={() => handleAttach('upload')} />
+          <EmptyAffordance icon={ScanLine} label={t('coach.scan')} onPress={() => handleAttach('camera')} />
+          <EmptyAffordance icon={Mic} label={t('coach.speak')} onPress={handleMic} />
         </View>
       </Surface>
     </View>
@@ -211,58 +324,7 @@ export default function Coach() {
 
   return (
     <AppShell>
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        {/* History sidebar (desktop only) */}
-        {isDesktop ? (
-          <View
-            style={{
-              width: 240,
-              borderRightWidth: 1,
-              borderRightColor: theme.colors.hairline,
-              padding: space.md,
-              gap: space.sm,
-            }}
-          >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Start a new conversation"
-              onPress={startNew}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: space.sm,
-                minHeight: layout.minTouchTarget,
-                paddingHorizontal: space.md,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: theme.colors.hairline,
-                backgroundColor: pressed ? theme.colors.inkSoft : theme.colors.card,
-              })}
-            >
-              <Plus size={18} color={theme.colors.ink} />
-              <Text variant="bodyStrong">New chat</Text>
-            </Pressable>
-
-            <Text variant="labelSm" color="muted" style={{ marginTop: space.sm }}>
-              Recent
-            </Text>
-            <View
-              style={{
-                padding: space.md,
-                borderRadius: 12,
-                backgroundColor: theme.colors.flameSoft,
-              }}
-            >
-              <Text variant="small" numberOfLines={1}>
-                BPO employment contract
-              </Text>
-              <Text variant="labelSm" color="muted">
-                Today
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
+      <View style={{ flex: 1 }}>
         {/* Thread + composer */}
         <View style={{ flex: 1 }}>
           {isEmpty ? EmptyState : Thread}
@@ -278,12 +340,13 @@ export default function Coach() {
           ) : null}
 
           <Composer
-            quickReplies={isEmpty ? [] : QUICK_REPLIES}
+            quickReplies={isEmpty ? [] : QUICK_REPLY_KEYS.map((k) => t(k))}
             onSend={handleSend}
-            onAttach={() => handleAttach('contract.pdf')}
-            onScan={() => handleAttach('contract-photo.jpg')}
+            onAttach={() => handleAttach('upload')}
+            onScan={() => handleAttach('camera')}
             onMic={handleMic}
             busy={busy}
+            listening={listening}
           />
         </View>
       </View>

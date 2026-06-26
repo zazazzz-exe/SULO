@@ -8,32 +8,17 @@ import { Text } from '@/components/ui/Text';
 import { StepConnector } from '@/components/motion/StepConnector';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useT, type StringKey } from '@/i18n';
 import { useTheme } from '@/theme';
 import { motion, radii, space } from '@/theme/tokens';
 
 import { IconTile, Section, SectionHeading } from './parts';
 
-const STEPS = [
-  {
-    icon: Camera,
-    title: 'Capture',
-    body: 'Photograph, upload, or speak the document. SULO works with what you have.',
-  },
-  {
-    icon: Sparkles,
-    title: 'Understand',
-    body: 'Every clause is rewritten in plain language, in English, Filipino, or Cebuano.',
-  },
-  {
-    icon: ShieldAlert,
-    title: 'Spot the risks',
-    body: 'Terms worth a second look get flagged, with a grounded reason and citation.',
-  },
-  {
-    icon: LifeBuoy,
-    title: 'Get real help',
-    body: 'When it matters, SULO routes you to free legal aid — PAO and DOLE.',
-  },
+const STEPS: { icon: typeof Camera; titleKey: StringKey; bodyKey: StringKey }[] = [
+  { icon: Camera, titleKey: 'how.capture', bodyKey: 'how.capture.body' },
+  { icon: Sparkles, titleKey: 'how.understand', bodyKey: 'how.understand.body' },
+  { icon: ShieldAlert, titleKey: 'how.risks', bodyKey: 'how.risks.body' },
+  { icon: LifeBuoy, titleKey: 'how.help', bodyKey: 'how.help.body' },
 ];
 
 /**
@@ -46,6 +31,7 @@ export function HowItWorks() {
   const reduced = useReducedMotionPref();
   const { isWide } = useResponsive();
   const { onLayout, visible } = useInViewport();
+  const { t } = useT();
 
   const StepCard = ({ index }: { index: number }) => {
     const s = STEPS[index];
@@ -89,9 +75,9 @@ export function HowItWorks() {
             </Text>
           </View>
         </View>
-        <Text variant="h3">{s.title}</Text>
+        <Text variant="h3">{t(s.titleKey)}</Text>
         <Text variant="body" color="muted" center={false} style={{ maxWidth: 240 }}>
-          {s.body}
+          {t(s.bodyKey)}
         </Text>
       </MotiView>
     );
@@ -101,10 +87,7 @@ export function HowItWorks() {
     <Section band>
       <Container>
         <View onLayout={onLayout}>
-          <SectionHeading
-            eyebrow="How it works"
-            title="From fine print to clear next step"
-          />
+          <SectionHeading eyebrow={t('how.eyebrow')} title={t('how.title')} />
 
           {isWide ? (
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>

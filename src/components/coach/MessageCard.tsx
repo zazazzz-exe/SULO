@@ -7,6 +7,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Surface } from '@/components/ui/Surface';
 import { Text } from '@/components/ui/Text';
 import type { PState } from '@/components/ui/pressableState';
+import { useT } from '@/i18n';
 import { useResponsive } from '@/hooks/useResponsive';
 import { useTheme } from '@/theme';
 import { radii, space, layout } from '@/theme/tokens';
@@ -170,6 +171,7 @@ function DocAnalysis({
   onOpenClause: OpenClause;
 }) {
   const theme = useTheme();
+  const { t } = useT();
   const { analysis } = card;
   return (
     <Surface pad="lg" radius="lg" shadow="md" style={{ gap: space.md }}>
@@ -228,7 +230,9 @@ function DocAnalysis({
       >
         <Flame size={16} color={theme.colors.flameDeep} />
         <Text variant="bodyStrong" color="flameDeep" style={{ flex: 1 }}>
-          I found {analysis.flags.length} things worth a closer look.
+          {t(analysis.flags.length === 1 ? 'card.foundLine.one' : 'card.foundLine.other', {
+            n: analysis.flags.length,
+          })}
         </Text>
       </View>
 
@@ -275,6 +279,7 @@ function RiskFlagBody({
   onOpenClause: OpenClause;
 }) {
   const theme = useTheme();
+  const { t } = useT();
   const { flag, clause } = card;
   return (
     <Surface
@@ -308,7 +313,7 @@ function RiskFlagBody({
         })}
       >
         <Text variant="bodyStrong" color="blueprint">
-          See the full clause
+          {t('card.seeClause')}
         </Text>
         <ChevronRight size={18} color={theme.colors.blueprint} />
       </Pressable>
@@ -324,9 +329,10 @@ function WhatIf({
   onOpenClause: OpenClause;
 }) {
   const theme = useTheme();
+  const { t } = useT();
   return (
     <Surface pad="lg" radius="lg" style={{ gap: space.md }}>
-      <Badge label="What if" tone="flame" />
+      <Badge label={t('card.whatIf')} tone="flame" />
       <Text variant="h3">{card.scenario}</Text>
       <View
         style={{
@@ -355,7 +361,7 @@ function WhatIf({
         style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, alignSelf: 'flex-start' })}
       >
         <Text variant="small" color="blueprint">
-          View the exact clause →
+          {t('card.viewClause')}
         </Text>
       </Pressable>
     </Surface>
@@ -368,9 +374,10 @@ function Escalation({
   card: Extract<MessageCardType, { kind: 'escalation' }>;
 }) {
   const theme = useTheme();
+  const { t } = useT();
   return (
     <Surface pad="lg" radius="lg" tone="alertBg" bordered={false} style={{ gap: space.md }}>
-      <Badge label="Talk to a real lawyer" tone="risk" />
+      <Badge label={t('card.talkLawyer')} tone="risk" />
       <Text variant="bodyLg" color="ink">
         {card.text}
       </Text>

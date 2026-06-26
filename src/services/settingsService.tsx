@@ -27,6 +27,8 @@ export const defaultSettings: Settings = {
   textSize: 'DEFAULT',
   reduceMotion: false,
   torchCursor: true,
+  tourSeen: false,
+  voiceDemoMode: true,
 };
 
 /** Multiplier applied to font sizes for the large-text accessibility option. */

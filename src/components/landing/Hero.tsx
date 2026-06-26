@@ -1,18 +1,20 @@
 import { useRouter } from 'expo-router';
 import { ArrowRight, ArrowDown } from 'lucide-react-native';
 import { MotiView } from 'moti';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Embers } from '@/components/brand/Embers';
 import { ParallaxGlow } from '@/components/brand/ParallaxGlow';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { RotatingWord } from '@/components/landing/RotatingWord';
+import { TourSpot } from '@/components/tour/TourSpot';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { Text } from '@/components/ui/Text';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { motion, space } from '@/theme/tokens';
 
@@ -41,11 +43,12 @@ function Enter({
   );
 }
 
-export function Hero({ onSeeHow }: { onSeeHow: () => void }) {
+export function Hero({ onSeeHow, onTakeTour }: { onSeeHow: () => void; onTakeTour: () => void }) {
   const theme = useTheme();
   const router = useRouter();
   const reduced = useReducedMotionPref();
   const { isWide, width } = useResponsive();
+  const { t } = useT();
 
   return (
     <View
@@ -70,7 +73,7 @@ export function Hero({ onSeeHow }: { onSeeHow: () => void }) {
           </Enter>
 
           <Enter index={1} reduced={reduced}>
-            <Badge label="Literacy, not advice" tone="flame" />
+            <Badge label={t('hero.badge')} tone="flame" />
           </Enter>
 
           <Enter index={2} reduced={reduced}>
@@ -80,7 +83,7 @@ export function Hero({ onSeeHow }: { onSeeHow: () => void }) {
                 center
                 style={{ maxWidth: 760, fontSize: isWide ? 46 : 32, lineHeight: isWide ? 52 : 38 }}
               >
-                Understand any legal document — in plain language,
+                {t('hero.headline')}
               </Text>
               <RotatingWord
                 words={['in English.', 'sa Filipino.', 'sa Cebuano.']}
@@ -92,9 +95,7 @@ export function Hero({ onSeeHow }: { onSeeHow: () => void }) {
 
           <Enter index={3} reduced={reduced}>
             <Text variant="bodyLg" color="muted" center style={{ maxWidth: 560 }}>
-              SULO is a torch for the fine print. Snap, upload, or speak a contract
-              and it explains what each part means, flags what’s risky, and points
-              you to free legal help. It teaches — it never pretends to be your lawyer.
+              {t('hero.subtext')}
             </Text>
           </Enter>
 
@@ -107,20 +108,32 @@ export function Hero({ onSeeHow }: { onSeeHow: () => void }) {
                 alignItems: 'center',
               }}
             >
-              <Button
-                label="Open the Coach"
-                size="lg"
-                onPress={() => router.push('/coach')}
-                iconRight={<ArrowRight size={18} color="#FFFFFF" />}
-              />
-              <Button
-                label="See how it works"
-                variant="secondary"
-                size="lg"
-                onPress={onSeeHow}
-                iconRight={<ArrowDown size={18} color={theme.colors.ink} />}
-              />
+              <TourSpot id="coach">
+                <Button
+                  label={t('hero.openCoach')}
+                  size="lg"
+                  onPress={() => router.push('/coach')}
+                  iconRight={<ArrowRight size={18} color="#FFFFFF" />}
+                />
+              </TourSpot>
+              <TourSpot id="how">
+                <Button
+                  label={t('hero.seeHow')}
+                  variant="secondary"
+                  size="lg"
+                  onPress={onSeeHow}
+                  iconRight={<ArrowDown size={18} color={theme.colors.ink} />}
+                />
+              </TourSpot>
             </View>
+          </Enter>
+
+          <Enter index={5} reduced={reduced}>
+            <Pressable onPress={onTakeTour} accessibilityRole="button" hitSlop={8}>
+              <Text variant="small" color="muted" style={{ textDecorationLine: 'underline' }}>
+                {t('tour.start')}
+              </Text>
+            </Pressable>
           </Enter>
         </View>
       </Container>

@@ -10,6 +10,7 @@ import { Container } from '@/components/ui/Container';
 import { Surface } from '@/components/ui/Surface';
 import { Text } from '@/components/ui/Text';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
+import { useT } from '@/i18n';
 import { glossaryTerms } from '@/data/glossaryTerms';
 import { useSettings } from '@/services/settingsService';
 import { useTheme } from '@/theme';
@@ -19,6 +20,7 @@ import type { GlossaryTerm } from '@/services/types';
 /** A sign-language video placeholder (Phase 2 drops in the real FSL clip). */
 function VideoPlaceholder({ name }: { name: string }) {
   const theme = useTheme();
+  const { t } = useT();
   return (
     <View
       accessibilityRole="image"
@@ -37,7 +39,7 @@ function VideoPlaceholder({ name }: { name: string }) {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
         <PlayCircle size={18} color={theme.colors.paper} />
         <Text variant="labelSm" style={{ color: theme.colors.paper }}>
-          FSL clip · coming soon
+          {t('glossary.clip')}
         </Text>
       </View>
       <Text variant="labelSm" style={{ color: theme.colors.muted }}>
@@ -103,17 +105,17 @@ function TermCard({ term }: { term: GlossaryTerm }) {
 }
 
 export default function Glossary() {
+  const { t } = useT();
   return (
     <AppShell>
       <RevealScrollView contentContainerStyle={{ paddingVertical: space.xl }}>
         <Container maxWidth={760}>
           <Reveal>
             <View style={{ gap: space.sm, marginBottom: space.xl }}>
-              <Badge label="FSL Glossary" tone="flame" />
-              <Text variant="h1">Legal words, made plain</Text>
+              <Badge label={t('glossary.badge')} tone="flame" />
+              <Text variant="h1">{t('glossary.title')}</Text>
               <Text variant="bodyLg" color="muted">
-                Common contract terms explained simply — each with a Filipino Sign
-                Language clip. Tap a term to learn more.
+                {t('glossary.subtitle')}
               </Text>
             </View>
           </Reveal>

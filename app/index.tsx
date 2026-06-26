@@ -13,7 +13,7 @@ import {
   Type,
   ArrowRight,
 } from 'lucide-react-native';
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Platform, View, type ScrollView } from 'react-native';
 
 import { DocumentPreview } from '@/components/landing/DocumentPreview';
@@ -23,76 +23,56 @@ import { InfoCard, Section, SectionHeading } from '@/components/landing/parts';
 import { CountUp } from '@/components/motion/CountUp';
 import { Reveal, RevealScrollView } from '@/components/motion/Reveal';
 import { AppShell } from '@/components/nav/AppShell';
+import { HOME_TOUR } from '@/components/tour/steps';
+import { useTour } from '@/components/tour/TourProvider';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Container } from '@/components/ui/Container';
 import { Surface } from '@/components/ui/Surface';
 import { Text } from '@/components/ui/Text';
 import { useResponsive } from '@/hooks/useResponsive';
+import { useT, type StringKey } from '@/i18n';
+import { useSettings } from '@/services/settingsService';
 import { useTheme } from '@/theme';
 import { motion, space } from '@/theme/tokens';
 
-const INPUT_MODES = [
-  {
-    icon: Camera,
-    title: 'Photo',
-    body: 'Point your camera at a printed contract or notice. SULO reads it for you.',
-  },
-  {
-    icon: Upload,
-    title: 'Upload',
-    body: 'Have a PDF or image? Upload it and get a plain-language breakdown.',
-  },
-  {
-    icon: Mic,
-    title: 'Voice',
-    body: 'Prefer to talk? Read a clause aloud or ask a question in your language.',
-  },
+type Card = { icon: typeof Camera; titleKey: StringKey; bodyKey: StringKey };
+
+const INPUT_MODES: Card[] = [
+  { icon: Camera, titleKey: 'modes.photo', bodyKey: 'modes.photo.body' },
+  { icon: Upload, titleKey: 'modes.upload', bodyKey: 'modes.upload.body' },
+  { icon: Mic, titleKey: 'modes.voice', bodyKey: 'modes.voice.body' },
 ];
 
-const FEATURES = [
-  {
-    icon: FileText,
-    title: 'Plain-language rewrite',
-    body: 'Every clause, rewritten so it actually makes sense — no legalese.',
-  },
-  {
-    icon: ShieldAlert,
-    title: 'Risk flags',
-    body: 'Terms worth questioning are highlighted, with a clear reason why.',
-  },
-  {
-    icon: Quote,
-    title: 'Grounded & cited answers',
-    body: 'Answers point to the law or issuance they come from — not guesses.',
-  },
-  {
-    icon: Volume2,
-    title: 'Voice in & out',
-    body: 'Ask by voice and have explanations read aloud at your own pace.',
-  },
-  {
-    icon: WifiOff,
-    title: 'Works offline',
-    body: 'Built to keep helping where connectivity is thin.',
-  },
+const FEATURES: Card[] = [
+  { icon: FileText, titleKey: 'features.rewrite', bodyKey: 'features.rewrite.body' },
+  { icon: ShieldAlert, titleKey: 'features.flags', bodyKey: 'features.flags.body' },
+  { icon: Quote, titleKey: 'features.cited', bodyKey: 'features.cited.body' },
+  { icon: Volume2, titleKey: 'features.voice', bodyKey: 'features.voice.body' },
+  { icon: WifiOff, titleKey: 'features.offline', bodyKey: 'features.offline.body' },
 ];
 
-const STATS: { to: number; prefix?: string; suffix?: string; label: string }[] = [
-  { to: 3, label: 'Languages' },
-  { to: 100, suffix: '%', label: 'Free, always' },
-  { to: 6, label: 'Clause checks' },
-  { to: 0, label: 'Legalese' },
+const STATS: { to: number; prefix?: string; suffix?: string; labelKey: StringKey }[] = [
+  { to: 3, labelKey: 'stats.languages' },
+  { to: 100, suffix: '%', labelKey: 'stats.free' },
+  { to: 6, labelKey: 'stats.checks' },
+  { to: 0, labelKey: 'stats.legalese' },
 ];
 
-const FOR_EVERYONE = [
-  { icon: Languages, label: 'English · Filipino · Cebuano' },
-  { icon: Volume2, label: 'Listen & speak' },
-  { icon: Type, label: 'Large, adjustable text' },
-  { icon: Accessibility, label: 'Built for screen readers' },
+const FOR_EVERYONE: { icon: typeof Languages; labelKey: StringKey }[] = [
+  { icon: Languages, labelKey: 'everyone.langs' },
+  { icon: Volume2, labelKey: 'everyone.listen' },
+  { icon: Type, labelKey: 'everyone.text' },
+  { icon: Accessibility, labelKey: 'everyone.reader' },
 ];
 
-function Grid({ children, columns }: { children: React.ReactNode; columns: number }) {
+const SHOWCASE_BULLETS: { icon: typeof FileText; key: StringKey }[] = [
+  { icon: FileText, key: 'showcase.b1' },
+  { icon: ShieldAlert, key: 'showcase.b2' },
+  { icon: Quote, key: 'showcase.b3' },
+];
+
+function Grid({ children }: { children: React.ReactNode }) {
   return (
     <View
       style={{
@@ -111,12 +91,27 @@ export default function Landing() {
   const theme = useTheme();
   const router = useRouter();
   const { isWide, width } = useResponsive();
+  const { t } = useT();
+  const { start } = useTour();
+  const { settings, ready, update } = useSettings();
   const scrollRef = useRef<ScrollView>(null);
   const howItWorksY = useRef(0);
 
   const scrollToHow = () => {
     scrollRef.current?.scrollTo({ y: howItWorksY.current, animated: true });
   };
+
+  const startTour = () => start(HOME_TOUR);
+
+  // Auto-start the tour on the very first visit (once layout has settled).
+  useEffect(() => {
+    if (!ready || settings.tourSeen) return;
+    const id = setTimeout(() => {
+      update({ tourSeen: true });
+      start(HOME_TOUR);
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [ready, settings.tourSeen, start, update]);
 
   const cardBasis = isWide ? '31%' : '100%';
   const featureBasis = isWide ? (width >= 1080 ? '31%' : '47%') : '100%';
@@ -129,16 +124,16 @@ export default function Landing() {
         contentContainerStyle={{ paddingBottom: space.xxxl }}
       >
         {/* 1. HERO */}
-        <Hero onSeeHow={scrollToHow} />
+        <Hero onSeeHow={scrollToHow} onTakeTour={startTour} />
 
         {/* 2. TRUST LINE */}
         <Section>
           <Container maxWidth={760}>
             <Reveal>
               <Text variant="h2" center color="ink">
-                A first job. A loan. A notice you didn’t expect.{' '}
+                {t('trust.lead')}
                 <Text variant="h2" color="flameDeep">
-                  SULO helps you read it with confidence.
+                  {t('trust.emph')}
                 </Text>
               </Text>
             </Reveal>
@@ -157,10 +152,10 @@ export default function Landing() {
               }}
             >
               {STATS.map((s) => (
-                <View key={s.label} style={{ alignItems: 'center', gap: space.xs, minWidth: 120 }}>
+                <View key={s.labelKey} style={{ alignItems: 'center', gap: space.xs, minWidth: 120 }}>
                   <CountUp to={s.to} prefix={s.prefix} suffix={s.suffix} />
                   <Text variant="label" color="muted" center>
-                    {s.label}
+                    {t(s.labelKey)}
                   </Text>
                 </View>
               ))}
@@ -181,19 +176,15 @@ export default function Landing() {
               <View style={{ flex: 1, gap: space.lg, minWidth: 280 }}>
                 <Reveal>
                   <SectionHeading
-                    eyebrow="What SULO sees"
-                    title="It reads the whole contract, then shows you what matters"
+                    eyebrow={t('showcase.eyebrow')}
+                    title={t('showcase.title')}
                     center={false}
                   />
                 </Reveal>
-                {[
-                  { icon: FileText, text: 'Every clause rewritten in plain language.' },
-                  { icon: ShieldAlert, text: 'Risky terms highlighted, with the reason why.' },
-                  { icon: Quote, text: 'Grounded in the actual law — never a guess.' },
-                ].map((b, i) => {
+                {SHOWCASE_BULLETS.map((b, i) => {
                   const Icon = b.icon;
                   return (
-                    <Reveal key={b.text} delay={i * motion.stagger}>
+                    <Reveal key={b.key} delay={i * motion.stagger}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
                         <View
                           style={{
@@ -208,7 +199,7 @@ export default function Landing() {
                           <Icon size={20} color={theme.colors.flameDeep} strokeWidth={1.8} />
                         </View>
                         <Text variant="bodyLg" style={{ flex: 1 }}>
-                          {b.text}
+                          {t(b.key)}
                         </Text>
                       </View>
                     </Reveal>
@@ -230,15 +221,15 @@ export default function Landing() {
           <Container>
             <Reveal>
               <SectionHeading
-                eyebrow="What it does"
-                title="Three ways to start"
-                subtitle="However the document reaches you, SULO meets you there."
+                eyebrow={t('modes.eyebrow')}
+                title={t('modes.title')}
+                subtitle={t('modes.subtitle')}
               />
             </Reveal>
-            <Grid columns={3}>
+            <Grid>
               {INPUT_MODES.map((m, i) => (
-                <Reveal key={m.title} delay={i * motion.stagger} style={{ flexBasis: cardBasis, flexGrow: 1 }}>
-                  <InfoCard icon={m.icon} title={m.title} body={m.body} />
+                <Reveal key={m.titleKey} delay={i * motion.stagger} style={{ flexBasis: cardBasis, flexGrow: 1 }}>
+                  <InfoCard icon={m.icon} title={t(m.titleKey)} body={t(m.bodyKey)} />
                 </Reveal>
               ))}
             </Grid>
@@ -258,15 +249,12 @@ export default function Landing() {
         <Section>
           <Container>
             <Reveal>
-              <SectionHeading
-                eyebrow="Features"
-                title="Everything points back to understanding"
-              />
+              <SectionHeading eyebrow={t('features.eyebrow')} title={t('features.title')} />
             </Reveal>
-            <Grid columns={3}>
+            <Grid>
               {FEATURES.map((f, i) => (
-                <Reveal key={f.title} delay={i * motion.stagger} style={{ flexBasis: featureBasis, flexGrow: 1 }}>
-                  <InfoCard icon={f.icon} title={f.title} body={f.body} tone={i % 2 ? 'blueprint' : 'flame'} />
+                <Reveal key={f.titleKey} delay={i * motion.stagger} style={{ flexBasis: featureBasis, flexGrow: 1 }}>
+                  <InfoCard icon={f.icon} title={t(f.titleKey)} body={t(f.bodyKey)} tone={i % 2 ? 'blueprint' : 'flame'} />
                 </Reveal>
               ))}
             </Grid>
@@ -278,9 +266,9 @@ export default function Landing() {
           <Container maxWidth={820}>
             <Reveal>
               <SectionHeading
-                eyebrow="For everyone"
-                title="Accessible by design"
-                subtitle="Multimodal, multilingual, and friendly to every reader."
+                eyebrow={t('everyone.eyebrow')}
+                title={t('everyone.title')}
+                subtitle={t('everyone.subtitle')}
               />
             </Reveal>
             <Reveal delay={motion.stagger}>
@@ -296,7 +284,7 @@ export default function Landing() {
                   const Icon = item.icon;
                   return (
                     <Surface
-                      key={item.label}
+                      key={item.labelKey}
                       pad="md"
                       radius="pill"
                       shadow="none"
@@ -307,7 +295,7 @@ export default function Landing() {
                       }}
                     >
                       <Icon size={18} color={theme.colors.blueprint} strokeWidth={1.8} />
-                      <Text variant="bodyStrong">{item.label}</Text>
+                      <Text variant="bodyStrong">{t(item.labelKey)}</Text>
                     </Surface>
                   );
                 })}
@@ -321,15 +309,14 @@ export default function Landing() {
           <Container maxWidth={760}>
             <Reveal>
               <Surface pad="xl" radius="lg" shadow="md" style={{ gap: space.lg }}>
-                <Badge label="The promise" tone="flame" />
-                <Text variant="h2">Literacy, not advice.</Text>
+                <Badge label={t('promise.badge')} tone="flame" />
+                <Text variant="h2">{t('promise.title')}</Text>
                 <Text variant="bodyLg" color="muted">
-                  SULO explains what your documents mean so you can ask better
-                  questions and make your own decisions. It does not give legal
-                  advice and is not a substitute for a lawyer. When a question
-                  needs real legal judgment, SULO says so — and routes you to{' '}
-                  <Text variant="bodyLg" color="ink">PAO</Text> and{' '}
-                  <Text variant="bodyLg" color="ink">DOLE</Text> for free help.
+                  {t('promise.body1')}
+                  <Text variant="bodyLg" color="ink">PAO</Text>
+                  {t('promise.and')}
+                  <Text variant="bodyLg" color="ink">DOLE</Text>
+                  {t('promise.body2')}
                 </Text>
               </Surface>
             </Reveal>
@@ -342,14 +329,13 @@ export default function Landing() {
             <Reveal>
               <View style={{ alignItems: 'center', gap: space.lg }}>
                 <Text variant="h1" center>
-                  Ready? Open the Coach.
+                  {t('cta.title')}
                 </Text>
                 <Text variant="bodyLg" color="muted" center style={{ maxWidth: 520 }}>
-                  Bring a contract you’re unsure about. SULO will walk through it
-                  with you, one clause at a time.
+                  {t('cta.subtitle')}
                 </Text>
                 <Button
-                  label="Open the Coach"
+                  label={t('hero.openCoach')}
                   size="lg"
                   onPress={() => router.push('/coach')}
                   iconRight={<ArrowRight size={18} color="#FFFFFF" />}
@@ -373,20 +359,20 @@ export default function Landing() {
             }}
           >
             <View style={{ gap: 2 }}>
-              <Text variant="bodyStrong">Team Siryus</Text>
+              <Text variant="bodyStrong">{t('footer.team')}</Text>
               <Text variant="small" color="muted">
-                ACM TechSprint — Asteria: Illuminate the Future
+                {t('footer.event')}
               </Text>
             </View>
             <View style={{ flexDirection: 'row', gap: space.lg }}>
               <Text variant="small" color="muted" onPress={() => router.push('/coach')}>
-                The Coach
+                {t('nav.coach')}
               </Text>
               <Text variant="small" color="muted" onPress={() => router.push('/glossary')}>
-                Glossary
+                {t('nav.glossary')}
               </Text>
               <Text variant="small" color="muted" onPress={() => router.push('/settings')}>
-                Settings
+                {t('nav.settings')}
               </Text>
             </View>
           </View>

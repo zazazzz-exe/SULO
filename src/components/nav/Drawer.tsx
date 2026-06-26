@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { useT } from '@/i18n';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
 import { useTheme } from '@/theme';
 import { layout, motion, space } from '@/theme/tokens';
@@ -25,6 +26,7 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
   const pathname = usePathname();
   const reduced = useReducedMotionPref();
   const insets = useSafeAreaInsets();
+  const { t } = useT();
 
   const go = (href: (typeof navItems)[number]['href']) => {
     onClose();
@@ -44,7 +46,7 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
             style={{ position: 'absolute', inset: 0 }}
           >
             <Pressable
-              accessibilityLabel="Close menu"
+              accessibilityLabel={t('nav.close')}
               accessibilityRole="button"
               onPress={onClose}
               style={{ flex: 1, backgroundColor: theme.colors.scrim }}
@@ -83,7 +85,7 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
               <Pressable
                 onPress={onClose}
                 accessibilityRole="button"
-                accessibilityLabel="Close menu"
+                accessibilityLabel={t('nav.close')}
                 hitSlop={10}
                 style={{
                   width: layout.minTouchTarget,
@@ -128,7 +130,7 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
                       variant="bodyStrong"
                       color={active ? 'flameDeep' : 'ink'}
                     >
-                      {n.label}
+                      {t(n.labelKey)}
                     </Text>
                   </Pressable>
                 );
@@ -137,28 +139,7 @@ export function Drawer({ open, onClose }: { open: boolean; onClose: () => void }
 
             <View style={{ flex: 1 }} />
 
-            <Text variant="labelSm" color="muted" style={{ marginBottom: space.sm }}>
-              Recent
-            </Text>
-            <View
-              style={{
-                paddingVertical: space.sm,
-                paddingHorizontal: space.md,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: theme.colors.hairline,
-                marginBottom: space.lg,
-              }}
-            >
-              <Text variant="small" numberOfLines={1}>
-                BPO employment contract
-              </Text>
-              <Text variant="labelSm" color="muted">
-                Today
-              </Text>
-            </View>
-
-            <Button label="Open the Coach" fullWidth onPress={() => go('/coach')} />
+            <Button label={t('nav.openCoach')} fullWidth onPress={() => go('/coach')} />
           </MotiView>
         </View>
       ) : null}

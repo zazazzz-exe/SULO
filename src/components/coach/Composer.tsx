@@ -8,11 +8,8 @@ import { Text } from '@/components/ui/Text';
 import type { PState } from '@/components/ui/pressableState';
 import { useReducedMotionPref } from '@/hooks/useReducedMotion';
 import { useResponsive } from '@/hooks/useResponsive';
-import {
-  readingLevelLabel,
-  languageLabel,
-  useSettings,
-} from '@/services/settingsService';
+import { useT } from '@/i18n';
+import { useSettings } from '@/services/settingsService';
 import { useTheme } from '@/theme';
 import { layout, motion, radii, space, webShadow } from '@/theme/tokens';
 import type { Language, ReadingLevel } from '@/services/types';
@@ -29,13 +26,14 @@ function ReadingLevelControl() {
   const theme = useTheme();
   const reduced = useReducedMotionPref();
   const { settings, update } = useSettings();
+  const { t } = useT();
   const [open, setOpen] = useState(false);
 
   return (
     <View style={{ position: 'relative' }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Reading level: ${readingLevelLabel[settings.readingLevel]}. Change`}
+        accessibilityLabel={t(`read.${settings.readingLevel}`)}
         onPress={() => setOpen((o) => !o)}
         hitSlop={4}
         style={({ pressed }) => ({
@@ -52,7 +50,7 @@ function ReadingLevelControl() {
         })}
       >
         <Text variant="labelSm" color="flameDeep">
-          {readingLevelLabel[settings.readingLevel].split(' — ')[0]}
+          {t(`read.${settings.readingLevel}.short`)}
         </Text>
         <ChevronDown size={14} color={theme.colors.muted} />
       </Pressable>
@@ -109,7 +107,7 @@ function ReadingLevelControl() {
                     {active ? <Check size={16} color={theme.colors.flameDeep} /> : null}
                   </View>
                   <Text variant="small" color={active ? 'flameDeep' : 'ink'} style={{ flex: 1 }}>
-                    {readingLevelLabel[lvl]}
+                    {t(`read.${lvl}`)}
                   </Text>
                 </Pressable>
               );
@@ -125,6 +123,7 @@ function ReadingLevelControl() {
 function LanguageControl() {
   const theme = useTheme();
   const { settings, update } = useSettings();
+  const { t } = useT();
   const cycle = () => {
     const i = LANGUAGES.indexOf(settings.language);
     update({ language: LANGUAGES[(i + 1) % LANGUAGES.length] });
@@ -132,7 +131,7 @@ function LanguageControl() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Language: ${languageLabel[settings.language]}. Tap to change`}
+      accessibilityLabel={t(`lang.${settings.language}`)}
       onPress={cycle}
       hitSlop={4}
       style={({ pressed }) => ({
@@ -160,6 +159,8 @@ export type ComposerProps = {
   onScan: () => void;
   onMic: () => void;
   busy?: boolean;
+  /** Mic is actively "listening" (highlights the button). */
+  listening?: boolean;
 };
 
 /**
@@ -174,9 +175,11 @@ export function Composer({
   onScan,
   onMic,
   busy,
+  listening,
 }: ComposerProps) {
   const theme = useTheme();
   const { isMobile } = useResponsive();
+  const { t } = useT();
   const [text, setText] = useState('');
 
   const submit = () => {
@@ -245,7 +248,7 @@ export function Composer({
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Attach a document"
+          accessibilityLabel={t('composer.attach')}
           onPress={onAttach}
           style={round()}
         >
@@ -254,7 +257,7 @@ export function Composer({
         {isMobile ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Scan a document"
+            accessibilityLabel={t('composer.scan')}
             onPress={onScan}
             style={round()}
           >
@@ -265,11 +268,11 @@ export function Composer({
         <TextInput
           value={text}
           onChangeText={setText}
-          placeholder="Ask about a clause, or paste it here…"
+          placeholder={t('composer.placeholder')}
           placeholderTextColor={theme.colors.muted}
           multiline
           onSubmitEditing={submit}
-          accessibilityLabel="Message SULO"
+          accessibilityLabel={t('composer.message')}
           style={{
             flex: 1,
             minHeight: layout.minTouchTarget,
@@ -284,15 +287,19 @@ export function Composer({
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Record voice message"
+          accessibilityLabel={t('composer.mic')}
+          accessibilityState={{ selected: !!listening }}
           onPress={onMic}
-          style={round()}
+          style={[
+            round(),
+            listening && { borderRadius: radii.pill, backgroundColor: theme.colors.flame },
+          ]}
         >
-          <Mic size={20} color={theme.colors.muted} />
+          <Mic size={20} color={listening ? '#FFFFFF' : theme.colors.muted} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Send message"
+          accessibilityLabel={t('composer.send')}
           accessibilityState={{ disabled: !text.trim() || !!busy }}
           onPress={submit}
           disabled={!text.trim() || !!busy}
@@ -310,7 +317,7 @@ export function Composer({
 
       {/* Literacy microcopy */}
       <View style={{ alignItems: 'center', paddingBottom: space.sm }}>
-        <Badge label="SULO teaches literacy — not legal advice" tone="neutral" />
+        <Badge label={t('composer.microcopy')} tone="neutral" />
       </View>
     </View>
   );

@@ -16,6 +16,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { TorchCursor } from '@/components/brand/TorchCursor';
+import { TourOverlay } from '@/components/tour/TourOverlay';
+import { TourProvider } from '@/components/tour/TourProvider';
 import { SettingsProvider } from '@/services/settingsService';
 import { colors } from '@/theme/tokens';
 
@@ -47,23 +49,26 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SettingsProvider>
-          <StatusBar style="dark" />
-          <TorchCursor />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: colors.paper },
-              animation: 'fade',
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="coach" />
-            <Stack.Screen name="glossary" />
-            <Stack.Screen
-              name="settings"
-              options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
-            />
-          </Stack>
+          <TourProvider>
+            <StatusBar style="dark" />
+            <TorchCursor />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.paper },
+                animation: 'fade',
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="coach" />
+              <Stack.Screen name="glossary" />
+              <Stack.Screen
+                name="settings"
+                options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+              />
+            </Stack>
+            <TourOverlay />
+          </TourProvider>
         </SettingsProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

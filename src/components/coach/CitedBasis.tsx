@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Badge } from '@/components/ui/Badge';
 import { Text } from '@/components/ui/Text';
+import { useT } from '@/i18n';
 import { useTheme } from '@/theme';
 import { radii, space } from '@/theme/tokens';
 import type { Citation } from '@/services/types';
@@ -13,6 +14,7 @@ import type { Citation } from '@/services/types';
  */
 export function CitedBasis({ citation }: { citation: Citation }) {
   const theme = useTheme();
+  const { t } = useT();
   return (
     <View
       style={{
@@ -24,7 +26,7 @@ export function CitedBasis({ citation }: { citation: Citation }) {
         borderColor: theme.colors.hairline,
       }}
     >
-      <Badge label={`Cited basis · ${citation.label}`} tone="info" icon={<Quote size={12} color={theme.colors.blueprint} />} />
+      <Badge label={`${t('card.citedBasis')} · ${citation.label}`} tone="info" icon={<Quote size={12} color={theme.colors.blueprint} />} />
       <Text variant="small" color="muted">
         {citation.detail}
       </Text>
